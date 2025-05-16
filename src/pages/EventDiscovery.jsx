@@ -36,6 +36,11 @@ import TableBody from "@mui/material/TableBody";
 import TableRow from "@mui/material/TableRow";
 import TableCell from "@mui/material/TableCell";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
+import Divider from "@mui/material/Divider";
+import Checkbox from "@mui/material/Checkbox";
+import Popover from "@mui/material/Popover";
+import FormGroup from "@mui/material/FormGroup";
+import FormControlLabel from "@mui/material/FormControlLabel";
 
 // Utility to format date
 function formatDate(val) {
@@ -61,6 +66,9 @@ export default function EventDetailView() {
   const [page, setPage] = useState(1);
   const [showToTop, setShowToTop] = useState(false);
   const eventsPerPage = 6;
+  const [removedEvents, setRemovedEvents] = useState([]);
+  const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
+  const [readdConfirmOpen, setReaddConfirmOpen] = useState(false);
   const filteredEvents = allEvents.filter((e) =>
     e.name.toLowerCase().includes(search.toLowerCase())
   );
@@ -72,6 +80,23 @@ export default function EventDetailView() {
   const topRef = useRef(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [selectedRows, setSelectedRows] = useState([]);
+  const [filterAnchorEl, setFilterAnchorEl] = useState(null);
+  const [filterState, setFilterState] = useState({
+    tm: false,
+    axs: false,
+    mlb: false,
+    seatgeek: false,
+    evenue: false,
+    stubhub: false,
+    early: false,
+    price: false,
+    onsale: false,
+    artist: false,
+    low: false,
+    remove: false,
+  });
+  const [sortOption, setSortOption] = useState("Ticket Quantity");
 
   // Scroll to top button logic
   useEffect(() => {
@@ -132,7 +157,14 @@ export default function EventDetailView() {
                   : "0 2px 8px 0 rgba(0,0,0,0.08)",
               }}
             >
-              <FilterListIcon sx={{ color: isDark ? "#aaa" : "#444", mr: 1 }} />
+              <FilterListIcon
+                sx={{
+                  color: isDark ? "#aaa" : "#444",
+                  mr: 1,
+                  cursor: "pointer",
+                }}
+                onClick={(e) => setFilterAnchorEl(e.currentTarget)}
+              />
               <TextField
                 placeholder="Search"
                 value={search}
@@ -590,7 +622,7 @@ export default function EventDetailView() {
               width: 56,
               height: 56,
               "&:hover": {
-                bgcolor: isDark ? "#f3f4f6" : "#7a0a0a",
+                bgcolor: isDark ? "#ffffff" : "#7a0a0a",
                 color: isDark ? "#0f172a" : "#fff",
               },
               fontSize: 32,
@@ -627,8 +659,15 @@ export default function EventDetailView() {
         PaperProps={{
           sx: {
             bgcolor: isDark ? "#181818" : "#fff",
-            borderRadius: 3,
+            borderRadius: { xs: 0, sm: 4 },
             boxShadow: 8,
+            m: { xs: 0, sm: 2 },
+            width: { xs: "100vw", sm: 720, md: 900 },
+            minHeight: { xs: "100vh", sm: "auto" },
+            maxHeight: { xs: "100vh", sm: "90vh" },
+            display: "flex",
+            flexDirection: "column",
+            p: 0,
           },
         }}
       >
@@ -637,37 +676,95 @@ export default function EventDetailView() {
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            fontWeight: 700,
-            fontSize: 24,
-            pb: 1,
+            fontWeight: 800,
+            fontSize: { xs: 22, sm: 28 },
+            letterSpacing: 0.2,
+            pb: 0,
+            pt: { xs: 2, sm: 3 },
+            px: { xs: 2, sm: 4 },
+            position: { xs: "fixed", sm: "static" },
+            top: 0,
+            left: 0,
+            width: { xs: "100vw", sm: "auto" },
+            zIndex: 1201,
+            bgcolor: isDark ? "#181818" : "#fff",
+            borderTopLeftRadius: { xs: 0, sm: 4 },
+            borderTopRightRadius: { xs: 0, sm: 4 },
+            boxShadow: { xs: 3, sm: 0 },
+            borderBottom: { xs: "1px solid #e5e7eb", sm: "none" },
+            mb: { xs: "0px", sm: 0 },
           }}
         >
-          {selectedEvent?.name || ""}
+          <span
+            style={{
+              fontWeight: 800,
+              fontSize: "inherit",
+              color: isDark ? "#fff" : "#23293a",
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+            }}
+          >
+            {selectedEvent?.name || ""}
+          </span>
           <IconButton onClick={() => setModalOpen(false)}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
+        <Box sx={{ height: { xs: "450px", sm: 0 } }} />
         <DialogContent
           sx={{
-            display: "flex",
-            flexDirection: { xs: "column", md: "row" },
-            gap: 3,
-            pt: 1,
+            pt: { xs: 15, sm: 2 },
+            pb: { xs: 2, sm: 3 },
+            px: { xs: 1, sm: 4 },
+            width: { xs: "100vw", sm: "auto" },
+            minHeight: { xs: "calc(100vh - 64px)", sm: "auto" },
+            overflowY: "auto",
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", md: "1.2fr 1fr" },
+            gap: { xs: 3, sm: 4 },
+            bgcolor: isDark ? "#181818" : "#fff",
+            justifyItems: { xs: "center", md: "stretch" },
           }}
         >
-          {/* Left: Event Info */}
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Box sx={{ display: "flex", gap: 2, mb: 1, flexWrap: "wrap" }}>
+          {/* Left: Event Info, Table, Jason Data */}
+          <Box
+            sx={{
+              width: { xs: "95vw", sm: "100%" },
+              maxWidth: { xs: 360, sm: "none" },
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+              mx: "auto",
+              alignItems: { xs: "center", md: "flex-start" },
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                gap: 2,
+                mb: 1,
+                justifyContent: { xs: "center", md: "flex-start" },
+                width: "100%",
+                textAlign: "center",
+              }}
+            >
               <Typography
                 variant="body2"
                 sx={{
                   fontWeight: 700,
-                  color: theme.palette.mode === "light" ? "#23293a" : "white",
+                  color: isDark ? "#fff" : "#23293a",
+                  fontSize: 16,
+                  display: "inline",
                 }}
               >
                 Date:
               </Typography>
-              <Typography variant="body2">
+              <Typography
+                variant="body2"
+                sx={{ fontSize: 16, display: "inline", ml: 1 }}
+              >
                 {formatDate(selectedEvent?.datetime) ||
                   formatDate(selectedEvent?.dateStr) ||
                   ""}
@@ -676,50 +773,101 @@ export default function EventDetailView() {
                 variant="body2"
                 sx={{
                   fontWeight: 700,
-                  color: theme.palette.mode === "light" ? "#23293a" : "white",
+                  color: isDark ? "#fff" : "#23293a",
                   ml: 2,
+                  fontSize: 16,
+                  display: "inline",
                 }}
               >
                 Venue:
               </Typography>
-              <Typography variant="body2">
+              <Typography
+                variant="body2"
+                sx={{ fontSize: 16, display: "inline", ml: 1 }}
+              >
                 {selectedEvent?.venue || ""}
               </Typography>
             </Box>
-            <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
+            <Box
+              sx={{
+                display: "flex",
+                gap: 1.5,
+                mb: 2,
+                justifyContent: { xs: "center", md: "flex-start" },
+                width: "100%",
+              }}
+            >
               <Button
                 variant="contained"
-                style={{
-                  color: theme.palette.mode === "light" ? "white" : "black",
-                }}
                 sx={{
                   borderRadius: 2,
-                  fontWeight: "normal",
-                  px: 3,
-                  py: 0.5,
+                  fontWeight: 400,
+                  px: 4,
+                  py: 1.2,
                   fontSize: 16,
+                  bgcolor: isDark ? "#fff" : theme.palette.primary.main,
+                  boxShadow: 2,
+                  textTransform: "none",
+                  "&:hover": {
+                    bgcolor: isDark ? "#f3f4f6" : theme.palette.primary.dark,
+                  },
+                  color: isDark ? "#23293a" : "#fff",
                 }}
               >
                 Filters
               </Button>
+              <Button
+                variant="contained"
+                sx={{
+                  borderRadius: 2,
+                  fontWeight: 400,
+                  px: 4,
+                  py: 1.2,
+                  fontSize: 16,
+                  bgcolor: isDark ? "#fff" : theme.palette.primary.main,
+                  boxShadow: 2,
+                  textTransform: "none",
+                  "&:hover": {
+                    bgcolor: isDark ? "#f3f4f6" : theme.palette.primary.dark,
+                  },
+                  color: isDark ? "#23293a" : "#fff",
+                }}
+              >
+                Enable ACO
+              </Button>
               <IconButton
                 sx={{
-                  bgcolor: "#e5e7eb",
-                  color: "#23293a",
+                  bgcolor: isDark ? "#232228" : "#e5e7eb",
+                  color: isDark ? "#fff" : "#23293a",
                   borderRadius: 2,
                   ml: 1,
                   width: 40,
                   height: 40,
+                  boxShadow: 1,
                 }}
               >
                 <VolumeUpIcon sx={{ fontSize: 24 }} />
               </IconButton>
             </Box>
-            <Typography variant="body2" sx={{ mb: 1 }}>
+            <Typography
+              variant="body2"
+              sx={{
+                mb: 1,
+                textAlign: { xs: "center", md: "left" },
+                fontWeight: 500,
+                fontSize: 16,
+              }}
+            >
               Total Quantity: <b>5</b>
             </Typography>
-            <Box sx={{ mb: 2 }}>
-              {/* Show URL as clickable link, not input */}
+            <Box
+              sx={{
+                mb: 2,
+                width: "100%",
+                display: "flex",
+                justifyContent: { xs: "center", md: "flex-start" },
+              }}
+            >
               <Box
                 sx={{
                   bgcolor: isDark ? "#232228" : "#f5f7fa",
@@ -729,6 +877,10 @@ export default function EventDetailView() {
                   display: "flex",
                   alignItems: "center",
                   minHeight: 48,
+                  width: "100%",
+                  justifyContent: { xs: "center", md: "flex-start" },
+                  boxShadow: 0,
+                  fontWeight: 600,
                 }}
               >
                 <a
@@ -737,7 +889,7 @@ export default function EventDetailView() {
                   rel="noopener noreferrer"
                   style={{
                     color: "#2563eb",
-                    fontWeight: 600,
+                    fontWeight: 700,
                     fontSize: 17,
                     textDecoration: "underline",
                     wordBreak: "break-all",
@@ -748,119 +900,196 @@ export default function EventDetailView() {
                 </a>
               </Box>
             </Box>
-            {/* Table */}
-            <Box sx={{ borderRadius: 2, overflow: "hidden", mb: 2 }}>
-              <Table sx={{ minWidth: 400 }}>
+            <Divider sx={{ my: 2, borderColor: isDark ? "#333" : "#e5e7eb" }} />
+            <Box
+              sx={{
+                borderRadius: 3,
+                overflowX: "auto",
+                overflowY: "hidden",
+                mb: 2,
+                width: "100%",
+                boxShadow: 1,
+                bgcolor: isDark ? "#232228" : "#f8fafc",
+                maxWidth: { xs: 360, sm: "none" },
+                mx: "auto",
+              }}
+            >
+              {/* Buy All Button */}
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  alignItems: "center",
+                  px: 2,
+                  pt: 2,
+                  mb: 1,
+                }}
+              >
+                <Button
+                  variant="contained"
+                  color="primary"
+                  disabled={selectedRows.length === 0}
+                  sx={{
+                    borderRadius: 2,
+                    fontWeight: 700,
+                    px: 3,
+                    py: 1,
+                    fontSize: 15,
+                    boxShadow: 1,
+                    textTransform: "none",
+                    bgcolor: theme.palette.primary.main,
+                    color: theme.palette.mode === "light" ? "#fff" : "#23293a",
+                    "&:hover": { bgcolor: theme.palette.primary.dark },
+                    ml: 2,
+                  }}
+                  onClick={() => {
+                    /* handle buy all action */
+                  }}
+                >
+                  Buy All ({selectedRows.length})
+                </Button>
+              </Box>
+              <Table sx={{ minWidth: 500, width: "100%" }}>
                 <TableHead>
                   <TableRow sx={{ bgcolor: "#23293a" }}>
-                    <TableCell sx={{ color: "#fff", fontWeight: 700 }}>
+                    <TableCell padding="checkbox">
+                      <Checkbox
+                        style={{ color: "white" }}
+                        checked={selectedRows.length === 2}
+                        indeterminate={
+                          selectedRows.length > 0 && selectedRows.length < 2
+                        }
+                        onChange={(e) => {
+                          if (e.target.checked) setSelectedRows([0, 1]);
+                          else setSelectedRows([]);
+                        }}
+                        sx={{ color: "#fff" }}
+                        inputProps={{ "aria-label": "select all tickets" }}
+                      />
+                    </TableCell>
+                    <TableCell
+                      sx={{ color: "#fff", fontWeight: 700, fontSize: 15 }}
+                    >
                       Ticket Type
                     </TableCell>
-                    <TableCell sx={{ color: "#fff", fontWeight: 700 }}>
+                    <TableCell
+                      sx={{ color: "#fff", fontWeight: 700, fontSize: 15 }}
+                    >
                       Section
                     </TableCell>
-                    <TableCell sx={{ color: "#fff", fontWeight: 700 }}>
+                    <TableCell
+                      sx={{ color: "#fff", fontWeight: 700, fontSize: 15 }}
+                    >
                       Row
                     </TableCell>
-                    <TableCell sx={{ color: "#fff", fontWeight: 700 }}>
+                    <TableCell
+                      sx={{ color: "#fff", fontWeight: 700, fontSize: 15 }}
+                    >
                       Seats (Qty)
                     </TableCell>
-                    <TableCell sx={{ color: "#fff", fontWeight: 700 }}>
+                    <TableCell
+                      sx={{ color: "#fff", fontWeight: 700, fontSize: 15 }}
+                    >
                       Links
                     </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  <TableRow>
-                    <TableCell>Standard Admission</TableCell>
-                    <TableCell>224</TableCell>
-                    <TableCell>5</TableCell>
-                    <TableCell>
-                      1, 2, 3 <b>(3)</b>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="small"
-                        sx={{
-                          ml: 1,
-                          bgcolor:
-                            theme.palette.mode === "light"
-                              ? "#0f172a"
-                              : "white",
-                          color:
-                            theme.palette.mode === "light" ? "#fff" : "black",
-                          borderRadius: 2,
-                          fontWeight: "normal",
-                          px: 2,
-                          py: 0.5,
-                          fontSize: 14,
-                        }}
-                      >
-                        Buy
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Standard Admission</TableCell>
-                    <TableCell>225</TableCell>
-                    <TableCell>5</TableCell>
-                    <TableCell>
-                      11, 12 <b>(2)</b>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="small"
-                        sx={{
-                          ml: 1,
-                          bgcolor:
-                            theme.palette.mode === "light"
-                              ? "#0f172a"
-                              : "white",
-                          color:
-                            theme.palette.mode === "light" ? "#fff" : "black",
-                          borderRadius: 2,
-                          fontWeight: "normal",
-                          px: 2,
-                          py: 0.5,
-                          fontSize: 14,
-                        }}
-                      >
-                        Buy
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+                  {[0, 1].map((idx) => (
+                    <TableRow
+                      hover
+                      key={idx}
+                      selected={selectedRows.includes(idx)}
+                    >
+                      <TableCell padding="checkbox">
+                        <Checkbox
+                          checked={selectedRows.includes(idx)}
+                          onChange={(e) => {
+                            if (e.target.checked)
+                              setSelectedRows([...selectedRows, idx]);
+                            else
+                              setSelectedRows(
+                                selectedRows.filter((i) => i !== idx)
+                              );
+                          }}
+                          sx={{ color: theme.palette.primary.main }}
+                          inputProps={{
+                            "aria-label": `select ticket row ${idx + 1}`,
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell>Standard Admission</TableCell>
+                      <TableCell>{idx === 0 ? 224 : 225}</TableCell>
+                      <TableCell>5</TableCell>
+                      <TableCell>
+                        {idx === 0 ? "1, 2, 3" : "11, 12"}{" "}
+                        <b>({idx === 0 ? 3 : 2})</b>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="small"
+                          sx={{
+                            ml: 1,
+                            bgcolor:
+                              theme.palette.mode === "dark"
+                                ? "white"
+                                : theme.palette.primary.main,
+                            color:
+                              theme.palette.mode === "dark" ? "black" : "white",
+                            borderRadius: 2,
+                            fontWeight: 400,
+                            px: 2,
+                            py: 0.5,
+                            fontSize: 14,
+                            boxShadow: 1,
+                          }}
+                        >
+                          BUY
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </Box>
-            <Typography
-              variant="subtitle2"
-              sx={{
-                color: theme.palette.mode === "light" ? "#7c3aed" : "white",
-                fontWeight: 700,
-                mt: 1,
-              }}
-            >
-              Jason Data
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                color: theme.palette.mode === "light" ? "#23293a" : "white",
-                mb: 1,
-              }}
-            >
-              Get In: <b>$140</b> Average: <b>$336</b>
-            </Typography>
+            <Divider sx={{ my: 2, borderColor: isDark ? "#333" : "#e5e7eb" }} />
+            <Box sx={{ mt: 1 }}>
+              <Typography
+                variant="subtitle2"
+                sx={{
+                  color: theme.palette.primary.main,
+                  fontWeight: 700,
+                  fontSize: 16,
+                  mb: 0.5,
+                  textAlign: { xs: "center", md: "left" },
+                }}
+              >
+                Jason Data
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: isDark ? "#fff" : "#23293a",
+                  mb: 1,
+                  textAlign: { xs: "center", md: "left" },
+                  fontWeight: 500,
+                  fontSize: 16,
+                }}
+              >
+                Get In: <b>$140</b> Average: <b>$336</b>
+              </Typography>
+            </Box>
           </Box>
-          {/* Right: Stadium Image and Ticketmaster Data + Notes */}
+          {/* Right: Stadium Image, Ticketmaster Data, Notes */}
           <Box
             sx={{
-              minWidth: 320,
+              width: { xs: "95vw", sm: "100%" },
+              maxWidth: { xs: 360, sm: "none" },
               display: "flex",
               flexDirection: "column",
-              alignItems: "center",
               gap: 2,
-              flex: 1,
+              alignItems: "center",
+              mx: "auto",
             }}
           >
             <Box
@@ -868,26 +1097,32 @@ export default function EventDetailView() {
               src={stadiumImages[0]}
               alt="venue map"
               sx={{
-                width: 260,
-                height: 180,
+                width: { xs: 180, sm: 220, md: 260 },
+                height: { xs: 100, sm: 140, md: 180 },
                 objectFit: "contain",
-                borderRadius: 2,
+                borderRadius: 3,
                 mb: 1,
+                boxShadow: 1,
+                mx: "auto",
+                bgcolor: isDark ? "#232228" : "#f8fafc",
               }}
             />
             <Box
               sx={{
                 width: "100%",
-                bgcolor: "#f5f7fa",
-                borderRadius: 2,
+                bgcolor: isDark ? "#232228" : "#f5f7fa",
+                borderRadius: 3,
                 p: 2,
                 mb: 1,
+                mx: "auto",
+                textAlign: "center",
+                boxShadow: 1,
               }}
             >
               <a
                 href="#"
                 style={{
-                  color: "#2563eb",
+                  color: theme.palette.primary.main,
                   fontWeight: 700,
                   fontSize: 16,
                   textDecoration: "underline",
@@ -897,13 +1132,22 @@ export default function EventDetailView() {
               </a>
               <Typography
                 variant="body2"
-                sx={{ color: "#23293a", fontWeight: 500, mt: 1 }}
+                sx={{
+                  color: isDark ? "#fff" : "#23293a",
+                  fontWeight: 500,
+                  mt: 1,
+                  fontSize: 15,
+                }}
               >
                 Total Seats: <b>9</b>
               </Typography>
               <Typography
                 variant="body2"
-                sx={{ color: "#2563eb", fontWeight: 500 }}
+                sx={{
+                  color: theme.palette.primary.main,
+                  fontWeight: 500,
+                  fontSize: 15,
+                }}
               >
                 Price Range: N/A
               </Typography>
@@ -914,25 +1158,27 @@ export default function EventDetailView() {
                 width: "100%",
                 bgcolor: isDark ? "#232228" : "#fff",
                 border: `1.5px solid ${borderColor}`,
-                borderRadius: 2,
-                p: 2.5,
+                borderRadius: 3,
+                p: { xs: 1.5, sm: 2.5 },
                 mb: 2,
                 minHeight: 120,
                 boxShadow: isDark ? 2 : 1,
                 display: "flex",
                 flexDirection: "column",
                 gap: 1.5,
+                alignItems: "center",
+                mx: "auto",
               }}
             >
               <Typography
                 variant="subtitle1"
                 sx={{
-                  color: textColor,
+                  color: isDark ? "#fff" : textColor,
                   fontWeight: 700,
                   fontSize: 18,
                   mb: 1,
                   letterSpacing: 0.2,
-                  textAlign: "left",
+                  textAlign: "center",
                 }}
               >
                 Notes
@@ -950,7 +1196,8 @@ export default function EventDetailView() {
                     fontSize: 17,
                     px: 1,
                     py: 1.5,
-                    color: textColor,
+                    color: isDark ? "#fff" : textColor,
+                    textAlign: "center",
                   },
                   disableUnderline: true,
                 }}
@@ -959,60 +1206,540 @@ export default function EventDetailView() {
             </Box>
           </Box>
         </DialogContent>
-        <DialogActions sx={{ justifyContent: "space-between", px: 3, pb: 2 }}>
+        <DialogActions
+          sx={{
+            justifyContent: "space-between",
+            px: { xs: 2, sm: 4 },
+            pb: 2,
+            flexDirection: { xs: "column", sm: "row" },
+            alignItems: { xs: "center", sm: "flex-end" },
+            borderTop: { xs: "1px solid #e5e7eb", sm: "none" },
+            width: "100%",
+            background: "none",
+            position: { xs: "fixed", sm: "static" },
+            left: 0,
+            bottom: 0,
+            zIndex: 1301,
+            bgcolor: { xs: isDark ? "#181818" : "#fff", sm: "transparent" },
+          }}
+        >
           <Typography
             variant="body2"
             sx={{
-              color: theme.palette.mode === "light" ? "#23293a" : "white",
+              color: isDark ? "#fff" : "#23293a",
               fontWeight: 700,
+              textAlign: { xs: "center", sm: "left" },
+              mb: { xs: 2, sm: 0 },
+              fontSize: 15,
             }}
           >
             Release Time: {formatDate(selectedEvent?.dateStr)}
           </Typography>
-          {/* Two buttons: Disable and Remove */}
-          <Box sx={{ display: "flex", gap: 2 }}>
-            <Button
-              variant="outlined"
-              disabled
-              sx={{
-                borderRadius: 2,
-                fontWeight: "normal",
-                px: 4,
-                py: 1,
-                fontSize: 16,
-                color: isDark ? "#aaa" : "#888",
-                borderColor: isDark ? "#444" : "#bbb",
-                bgcolor: isDark ? "#232228" : "#f3f4f6",
-                "&.Mui-disabled": {
-                  color: isDark ? "#555" : "#bbb",
-                  borderColor: isDark ? "#333" : "#eee",
-                  bgcolor: isDark ? "#232228" : "#f3f4f6",
-                  opacity: 1,
-                },
-              }}
-            >
-              Disable
-            </Button>
-            <Button
-              variant="contained"
-              color="error"
-              sx={{
-                borderRadius: 2,
-                fontWeight: "normal",
-                px: 4,
-                py: 1,
-                fontSize: 16,
-                bgcolor: isDark ? "#b91c1c" : "#ef4444",
-                color: "#fff",
-                boxShadow: 2,
-                "&:hover": {
-                  bgcolor: isDark ? "#991b1b" : "#dc2626",
-                },
-              }}
-            >
-              Remove
-            </Button>
+          <Box
+            sx={{
+              display: "flex",
+              gap: 2,
+              justifyContent: { xs: "center", sm: "flex-end" },
+              width: { xs: "100%", sm: "auto" },
+            }}
+          >
+            {removedEvents.includes(selectedEvent?.id) ? (
+              <Button
+                variant="contained"
+                color="success"
+                sx={{
+                  borderRadius: 2,
+                  fontWeight: 400,
+                  px: 4,
+                  py: 1.2,
+                  fontSize: 16,
+                  bgcolor: theme.palette.success.main,
+                  color: "#fff",
+                  boxShadow: 2,
+                  width: { xs: "100%", sm: "auto" },
+                  "&:hover": {
+                    bgcolor: theme.palette.success.dark,
+                  },
+                }}
+                onClick={() => setReaddConfirmOpen(true)}
+              >
+                Re-add Event
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                color="error"
+                sx={{
+                  borderRadius: 2,
+                  fontWeight: 400,
+                  px: 4,
+                  py: 1.2,
+                  fontSize: 16,
+                  bgcolor: isDark ? "#b91c1c" : "#ef4444",
+                  color: "#fff",
+                  boxShadow: 2,
+                  width: { xs: "100%", sm: "auto" },
+                  "&:hover": {
+                    bgcolor: isDark ? "#991b1b" : "#dc2626",
+                  },
+                }}
+                onClick={() => setRemoveConfirmOpen(true)}
+              >
+                REMOVE
+              </Button>
+            )}
           </Box>
+        </DialogActions>
+      </Dialog>
+      {/* Filter Popover */}
+      <Popover
+        open={Boolean(filterAnchorEl)}
+        anchorEl={filterAnchorEl}
+        onClose={() => setFilterAnchorEl(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        PaperProps={{
+          sx: {
+            bgcolor: theme.palette.mode === "dark" ? "#181818" : "#fff",
+            color: "#181818",
+            borderRadius: 3,
+            boxShadow: 6,
+            p: 2,
+            minWidth: 220,
+            maxWidth: 260,
+          },
+        }}
+      >
+        <Box sx={{ mb: 2, textAlign: "center" }}>
+          <Typography
+            sx={{ fontWeight: 700, fontSize: 16, mb: 1 }}
+            style={{
+              color: theme.palette.mode === "dark" ? "white" : "black",
+            }}
+          >
+            Sort Options
+          </Typography>
+          <TextField
+            select
+            fullWidth
+            size="small"
+            value={sortOption}
+            onChange={(e) => setSortOption(e.target.value)}
+            style={{
+              color: theme.palette.mode === "dark" ? "#fff" : "#fff",
+            }}
+            sx={{
+              bgcolor: theme.palette.mode === "dark" ? "#232228" : "#23293a",
+              borderRadius: 1,
+              mb: 1,
+              "& .MuiSelect-select": {
+                color: theme.palette.mode === "dark" ? "#fff" : "#fff",
+                fontWeight: 600,
+              },
+              "& .MuiOutlinedInput-notchedOutline": {
+                borderColor: theme.palette.primary.main,
+              },
+              "& .MuiSvgIcon-root": { color: theme.palette.primary.main },
+            }}
+            SelectProps={{
+              native: true,
+              sx: { color: theme.palette.mode === "dark" ? "#fff" : "#fff" },
+              MenuProps: {
+                PaperProps: {
+                  sx: {
+                    bgcolor: theme.palette.mode === "dark" ? "#232228" : "#fff",
+                    color: "#000",
+                  },
+                },
+                MenuListProps: {
+                  sx: {
+                    "& .MuiMenuItem-root": {
+                      color: "#000",
+                      bgcolor:
+                        theme.palette.mode === "dark" ? "#232228" : "#fff",
+                    },
+                  },
+                },
+              },
+            }}
+            InputProps={{
+              sx: { color: theme.palette.mode === "dark" ? "#fff" : "#fff" },
+            }}
+          >
+            <option
+              value="Ticket Quantity"
+              style={{ color: theme.palette.mode === "dark" ? "#fff" : "#000" }}
+            >
+              Ticket Quantity
+            </option>
+            <option
+              value="Price"
+              style={{ color: theme.palette.mode === "dark" ? "#fff" : "#000" }}
+            >
+              Price
+            </option>
+            <option
+              value="Date"
+              style={{ color: theme.palette.mode === "dark" ? "#fff" : "#000" }}
+            >
+              Date
+            </option>
+          </TextField>
+        </Box>
+        <FormGroup>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={filterState.tm}
+                onChange={(e) =>
+                  setFilterState((s) => ({ ...s, tm: e.target.checked }))
+                }
+                sx={{
+                  color: theme.palette.mode === "light" ? "#0f172a" : "#fff",
+                }}
+              />
+            }
+            label="Ticketmaster / Live Nation"
+            style={{
+              color: theme.palette.mode === "dark" ? "white" : "black",
+            }}
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={filterState.axs}
+                onChange={(e) =>
+                  setFilterState((s) => ({ ...s, axs: e.target.checked }))
+                }
+                sx={{
+                  color: theme.palette.mode === "light" ? "#0f172a" : "#fff",
+                }}
+              />
+            }
+            label="AXS"
+            style={{
+              color: theme.palette.mode === "dark" ? "white" : "black",
+            }}
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={filterState.mlb}
+                onChange={(e) =>
+                  setFilterState((s) => ({ ...s, mlb: e.target.checked }))
+                }
+                sx={{
+                  color: theme.palette.mode === "light" ? "#0f172a" : "#fff",
+                }}
+              />
+            }
+            label="MLB"
+            style={{
+              color: theme.palette.mode === "dark" ? "white" : "black",
+            }}
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={filterState.seatgeek}
+                onChange={(e) =>
+                  setFilterState((s) => ({ ...s, seatgeek: e.target.checked }))
+                }
+                sx={{
+                  color: theme.palette.mode === "light" ? "#0f172a" : "#fff",
+                }}
+              />
+            }
+            label="SeatGeek"
+            style={{
+              color: theme.palette.mode === "dark" ? "white" : "black",
+            }}
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={filterState.evenue}
+                onChange={(e) =>
+                  setFilterState((s) => ({ ...s, evenue: e.target.checked }))
+                }
+                sx={{
+                  color: theme.palette.mode === "light" ? "#0f172a" : "#fff",
+                }}
+              />
+            }
+            label="Evenue"
+            style={{
+              color: theme.palette.mode === "dark" ? "white" : "black",
+            }}
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={filterState.stubhub}
+                onChange={(e) =>
+                  setFilterState((s) => ({ ...s, stubhub: e.target.checked }))
+                }
+                sx={{
+                  color: theme.palette.mode === "light" ? "#0f172a" : "#fff",
+                }}
+              />
+            }
+            label="Stubhub"
+            style={{
+              color: theme.palette.mode === "dark" ? "white" : "black",
+            }}
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={filterState.early}
+                onChange={(e) =>
+                  setFilterState((s) => ({ ...s, early: e.target.checked }))
+                }
+                sx={{
+                  color: theme.palette.mode === "light" ? "#0f172a" : "#fff",
+                }}
+              />
+            }
+            label="Early Monitor"
+            style={{
+              color: theme.palette.mode === "dark" ? "white" : "black",
+            }}
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={filterState.price}
+                onChange={(e) =>
+                  setFilterState((s) => ({ ...s, price: e.target.checked }))
+                }
+                sx={{
+                  color: theme.palette.mode === "light" ? "#0f172a" : "#fff",
+                }}
+              />
+            }
+            label="Price Drops"
+            style={{
+              color: theme.palette.mode === "dark" ? "white" : "black",
+            }}
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={filterState.onsale}
+                onChange={(e) =>
+                  setFilterState((s) => ({ ...s, onsale: e.target.checked }))
+                }
+                sx={{
+                  color: theme.palette.mode === "light" ? "#0f172a" : "#fff",
+                }}
+              />
+            }
+            label="Onsale / Presale"
+            style={{
+              color: theme.palette.mode === "dark" ? "white" : "black",
+            }}
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={filterState.artist}
+                onChange={(e) =>
+                  setFilterState((s) => ({ ...s, artist: e.target.checked }))
+                }
+                sx={{
+                  color: theme.palette.mode === "light" ? "#0f172a" : "#fff",
+                }}
+              />
+            }
+            label="Artist Add"
+            style={{
+              color: theme.palette.mode === "dark" ? "white" : "black",
+            }}
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={filterState.low}
+                onChange={(e) =>
+                  setFilterState((s) => ({ ...s, low: e.target.checked }))
+                }
+                sx={{
+                  color: theme.palette.mode === "light" ? "#0f172a" : "#fff",
+                }}
+              />
+            }
+            label="Low Stock"
+            style={{
+              color: theme.palette.mode === "dark" ? "white" : "black",
+            }}
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={filterState.remove}
+                onChange={(e) =>
+                  setFilterState((s) => ({ ...s, remove: e.target.checked }))
+                }
+                sx={{
+                  color: theme.palette.mode === "light" ? "#0f172a" : "#fff",
+                }}
+              />
+            }
+            label="Remove Onsale / Presale"
+            style={{
+              color: theme.palette.mode === "dark" ? "white" : "black",
+            }}
+          />
+        </FormGroup>
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+          <Button
+            variant="contained"
+            sx={{
+              bgcolor: theme.palette.primary.main,
+              color: theme.palette.primary.contrastText,
+              borderRadius: 2,
+              fontWeight: 700,
+              px: 4,
+              py: 1,
+              fontSize: 15,
+              boxShadow: 1,
+              textTransform: "none",
+              "&:hover": { bgcolor: theme.palette.primary.dark },
+            }}
+            onClick={() => setFilterAnchorEl(null)}
+          >
+            APPLY
+          </Button>
+        </Box>
+      </Popover>
+      {/* Remove Confirm Dialog */}
+      <Dialog
+        open={removeConfirmOpen}
+        onClose={() => setRemoveConfirmOpen(false)}
+      >
+        <DialogTitle
+          sx={{
+            fontWeight: 700,
+            fontSize: 18,
+            textAlign: "center",
+            pt: 3,
+            pb: 1,
+            bgcolor: isDark ? "#181818" : "#fff",
+            color: isDark ? "#fff" : "#23293a",
+          }}
+        >
+          Are you sure you want to remove this event?
+        </DialogTitle>
+        <DialogActions
+          sx={{
+            justifyContent: "center",
+            pb: 2,
+            bgcolor: isDark ? "#181818" : "#fff",
+          }}
+        >
+          <Button
+            onClick={() => setRemoveConfirmOpen(false)}
+            sx={{
+              borderRadius: 2,
+              fontWeight: 500,
+              px: 3,
+              py: 1,
+              color: theme.palette.primary.contrastText,
+              bgcolor: theme.palette.primary.main,
+              mr: 2,
+              boxShadow: 1,
+              textTransform: "none",
+              "&:hover": { bgcolor: theme.palette.primary.dark },
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              setRemovedEvents([...removedEvents, selectedEvent.id]);
+              setRemoveConfirmOpen(false);
+            }}
+            variant="contained"
+            sx={{
+              borderRadius: 2,
+              fontWeight: 700,
+              px: 3,
+              py: 1,
+              bgcolor: theme.palette.error.main,
+              color: "#fff",
+              boxShadow: 1,
+              textTransform: "none",
+              "&:hover": { bgcolor: theme.palette.error.dark },
+            }}
+          >
+            Ok
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* Re-add Confirm Dialog */}
+      <Dialog
+        open={readdConfirmOpen}
+        onClose={() => setReaddConfirmOpen(false)}
+      >
+        <DialogTitle
+          sx={{
+            fontWeight: 700,
+            fontSize: 18,
+            textAlign: "center",
+            pt: 3,
+            pb: 1,
+            bgcolor: isDark ? "#181818" : "#fff",
+            color: isDark ? "#fff" : "#23293a",
+          }}
+        >
+          Are you sure you want to re-add this event?
+        </DialogTitle>
+        <DialogActions
+          sx={{
+            justifyContent: "center",
+            pb: 2,
+            bgcolor: isDark ? "#181818" : "#fff",
+          }}
+        >
+          <Button
+            onClick={() => setReaddConfirmOpen(false)}
+            sx={{
+              borderRadius: 2,
+              fontWeight: 500,
+              px: 3,
+              py: 1,
+              color: theme.palette.primary.contrastText,
+              bgcolor: theme.palette.primary.main,
+              mr: 2,
+              boxShadow: 1,
+              textTransform: "none",
+              "&:hover": { bgcolor: theme.palette.primary.dark },
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              setRemovedEvents(
+                removedEvents.filter((id) => id !== selectedEvent.id)
+              );
+              setReaddConfirmOpen(false);
+            }}
+            variant="contained"
+            sx={{
+              borderRadius: 2,
+              fontWeight: 700,
+              px: 3,
+              py: 1,
+              bgcolor: theme.palette.success.main,
+              color: "#fff",
+              boxShadow: 1,
+              textTransform: "none",
+              "&:hover": { bgcolor: theme.palette.success.dark },
+            }}
+          >
+            Ok
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>
